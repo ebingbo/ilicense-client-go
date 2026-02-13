@@ -1,93 +1,144 @@
 # ilicense-client-go
 
+用于客户端离线激活与许可证校验的 Go SDK。
 
+管理端通过 `license-lite` 下发许可证与激活码，业务系统接入 `ilicense-client-go` 后可在本地完成激活、有效期校验和模块授权校验。
 
-## Getting started
+## 功能特性
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- 离线激活码校验（RSA + SHA-256 签名验证）。
+- 许可证状态校验（如 `已过期`、`未激活`）。
+- 模块级权限校验。
+- 激活码本地持久化，支持启动校验与定时校验。
+- 内存中的许可证状态线程安全。
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 运行要求
 
-## Add your files
+- Go `1.24+`
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## 安装
 
+```bash
+go get github.com/ebingbo/ilicense-client-go
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/ibingbo/ilicense-client-go.git
-git branch -M main
-git push -uf origin main
+
+## 快速开始
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/ebingbo/ilicense-client-go/ilicense"
+)
+
+func main() {
+	cfg := ilicense.DefaultConfig()
+	cfg.PublicKey = "YOUR_RSA_PUBLIC_KEY"
+	cfg.ValidateOnStartup = true
+	cfg.AllowStartWhenExpired = false
+
+	client := ilicense.NewClient(&cfg)
+
+	if err := client.Init(); err != nil {
+		log.Fatalf("license init failed: %v", err)
+	}
+
+	_, err := client.Activate("YOUR_ACTIVATION_CODE")
+	if err != nil {
+		log.Fatalf("license activation failed: %v", err)
+	}
+
+	if err := client.CheckModule("m-a"); err != nil {
+		log.Fatalf("module access denied: %v", err)
+	}
+}
 ```
 
-## Integrate with your tools
+## 可运行示例
 
-* [Set up project integrations](https://gitlab.com/ibingbo/ilicense-client-go/-/settings/integrations)
+- 基础激活：`go run ./examples/basic`
+- 先离线校验再激活：`go run ./examples/offline_activate`
 
-## Collaborate with your team
+需要的环境变量：
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+- `ILICENSE_PUBLIC_KEY`
+- `ILICENSE_ACTIVATION_CODE`（仅在需要激活时必须提供）
 
-## Test and Deploy
+## 配置项
 
-Use the built-in continuous integration in GitLab.
+`ilicense.Config`：
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+- `Enabled`：是否启用许可证校验。
+- `PublicKey`：用于校验激活码签名的 RSA 公钥。
+- `StoragePath`：激活码本地存储路径。
+- `ValidateOnStartup`：是否在启动时加载并校验许可证。
+- `AllowStartWhenExpired`：许可证缺失或过期时是否允许启动。
+- `Logger`：可选日志注入（`Printf`/`Println`）；默认静默。
 
-***
+## 对外 API
 
-# Editing this README
+- `NewClient(config *Config) *Client`
+- `(*Client).Init() error`
+- `(*Client).Activate(code string) (*License, error)`
+- `(*Client).CheckLicense() error`
+- `(*Client).CheckModule(module string) error`
+- `(*Client).GetCurrentLicense() *License`
+- `(*Client).IsValid() bool`
+- `(*Client).HasModule(module string) bool`
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## 错误语义
 
-## Suggestions for a good README
+- `ErrLicenseNotFound`：系统未激活。
+- `ErrLicenseExpired`：许可证已过期。
+- `ErrSignatureInvalid`：激活码签名校验失败。
+- `LicenseError`：底层 IO 或运行时错误包装。
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## 安全说明
 
-## Name
-Choose a self-explaining name for your project.
+- 私钥仅保存在管理端（`license-lite`），客户端仅下发公钥。
+- 请限制 `StoragePath` 文件写入权限。
+- 建议定期轮换签发密钥并支持吊销。
+- 本 SDK 不覆盖受攻击客户端上的内存篡改场景。
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## 开发
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```bash
+make test
+make vet
+make fmt
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## 版本与发布
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+- 使用语义化版本（SemVer）。
+- 兼容性承诺仅针对 `ilicense` 包。
+- 发布策略见 [docs/RELEASING.md](docs/RELEASING.md)。
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## 兼容性
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+- 管理平台：`license-lite`
+- 协议：JSON 许可证数据 + RSA 签名，URL-safe Base64 二进制封装
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+| 组件 | 支持范围 |
+| --- | --- |
+| Go 运行时 | `1.24+` |
+| 公共 API 稳定性 | 当前主版本内 `ilicense` 包 |
+| 内部包 | 不承诺兼容性 |
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+## 贡献
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+参见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 安全策略
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+参见 [SECURITY.md](SECURITY.md)。
 
-## License
-For open source projects, say how it is licensed.
+## 行为准则
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+参见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
+
+## 许可证
+
+Apache-2.0，详见 [LICENSE](LICENSE)。

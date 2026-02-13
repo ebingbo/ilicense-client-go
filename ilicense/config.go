@@ -1,8 +1,12 @@
 package ilicense
 
-import (
-	"ilicense-client-go/core"
-)
+import "os"
+
+// Logger defines optional logging hook for SDK runtime messages.
+type Logger interface {
+	Printf(format string, v ...any)
+	Println(v ...any)
+}
 
 // Config mirrors license properties from the Java SDK.
 type Config struct {
@@ -11,6 +15,7 @@ type Config struct {
 	StoragePath           string `json:"storage_path"`
 	ValidateOnStartup     bool   `json:"validate_on_startup"`
 	AllowStartWhenExpired bool   `json:"allow_start_when_expired"`
+	Logger                Logger `json:"-"`
 }
 
 // DefaultConfig returns the Java-equivalent defaults.
@@ -24,7 +29,10 @@ func DefaultConfig() Config {
 }
 
 func defaultStoragePath() string {
-	home := core.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ".license/license.dat"
+	}
 	if home == "" {
 		return ".license/license.dat"
 	}

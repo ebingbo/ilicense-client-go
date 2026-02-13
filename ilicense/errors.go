@@ -1,11 +1,18 @@
 package ilicense
 
-import "errors"
+import (
+	"errors"
+
+	core "github.com/ebingbo/ilicense-client-go/internal/core"
+)
 
 var (
-	ErrLicenseNotFound  = errors.New("system not activated")
-	ErrLicenseExpired   = errors.New("license expired")
-	ErrSignatureInvalid = errors.New("signature verification failed")
+	// ErrLicenseNotFound means the system has not been activated.
+	ErrLicenseNotFound = errors.New("system not activated")
+	// ErrLicenseExpired means the currently loaded license is expired.
+	ErrLicenseExpired = errors.New("license expired")
+	// ErrSignatureInvalid means activation code signature verification failed.
+	ErrSignatureInvalid = core.ErrSignatureInvalid
 )
 
 // LicenseError wraps a low-level error with context.

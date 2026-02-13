@@ -11,14 +11,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 )
 
-func Validate(publicKey string, activationCode string) (*License, error) {
-	log.Println("starting license validation")
+var ErrSignatureInvalid = errors.New("signature verification failed")
 
+func Validate(publicKey string, activationCode string) (*License, error) {
 	cleaned := strings.TrimSpace(strings.Map(func(r rune) rune {
 		switch r {
 		case ' ', '\n', '\r', '\t':
@@ -30,40 +29,37 @@ func Validate(publicKey string, activationCode string) (*License, error) {
 
 	decoded, err := decodeBase64URL(cleaned)
 	if err != nil {
-		log.Printf("base64 decode failed: %v", err)
-		return nil, fmt.Errorf("license validation failed: %+v", err)
+		return nil, fmt.Errorf("license validation failed: %w", err)
 	}
 
 	if len(decoded) < 8 {
-		return nil, fmt.Errorf("license validation failed: %+v", "activation payload too short")
+		return nil, errors.New("license validation failed: activation payload too short")
 	}
 
 	dataLen := int(binary.BigEndian.Uint32(decoded[:4]))
 	if dataLen < 0 || 4+dataLen+4 > len(decoded) {
-		return nil, fmt.Errorf("license validation failed: %+v", "invalid data length")
+		return nil, errors.New("license validation failed: invalid data length")
 	}
 	dataBytes := decoded[4 : 4+dataLen]
 
 	sigLenOffset := 4 + dataLen
 	sigLen := int(binary.BigEndian.Uint32(decoded[sigLenOffset : sigLenOffset+4]))
 	if sigLen < 0 || sigLenOffset+4+sigLen > len(decoded) {
-		return nil, fmt.Errorf("license validation failed: %+v", "invalid signature length")
+		return nil, errors.New("license validation failed: invalid signature length")
 	}
 	signatureBytes := decoded[sigLenOffset+4 : sigLenOffset+4+sigLen]
 
 	pubKey, err := loadPublicKey(publicKey)
 	if err != nil {
-		return nil, fmt.Errorf("license validation failed: %+v", err)
+		return nil, fmt.Errorf("license validation failed: %w", err)
 	}
 
 	if err := verifySignature(dataBytes, signatureBytes, pubKey); err != nil {
 		return nil, err
 	}
-	log.Println("signature verification successful")
-
 	info, err := parseLicenseData(dataBytes)
 	if err != nil {
-		return nil, fmt.Errorf("license validation failed: %+v", err)
+		return nil, fmt.Errorf("license validation failed: %w", err)
 	}
 
 	now := time.Now()
@@ -72,7 +68,6 @@ func Validate(publicKey string, activationCode string) (*License, error) {
 		info.DaysLeft = int64(info.ExpireAt.Sub(now).Hours() / 24)
 	}
 
-	log.Printf("license validation successful: %s", info.CustomerName)
 	return info, nil
 }
 
@@ -139,7 +134,7 @@ func loadPublicKey(publicKeyStr string) (*rsa.PublicKey, error) {
 func verifySignature(data, signature []byte, publicKey *rsa.PublicKey) error {
 	hash := sha256.Sum256(data)
 	if err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hash[:], signature); err != nil {
-		return errors.New("signature verification failed")
+		return ErrSignatureInvalid
 	}
 	return nil
 }

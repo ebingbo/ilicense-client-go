@@ -1,11 +1,11 @@
-package core
+package ilicense
 
 import (
 	"strings"
 	"time"
 )
 
-// License mirrors Java License fields.
+// License is the public license model exposed by the SDK.
 type License struct {
 	LicenseCode  string    `json:"license_code"`
 	CustomerCode string    `json:"customer_code"`
@@ -23,13 +23,24 @@ type License struct {
 	DaysLeft int64 `json:"days_left"`
 }
 
-func (l License) IsExpired(now time.Time) bool {
+// IsExpired reports whether ExpireAt is before the given time.
+func (l *License) IsExpired(now time.Time) bool {
 	if l.ExpireAt.IsZero() {
 		return false
 	}
 	return l.ExpireAt.Before(now)
 }
 
-func (l License) HasModule(moduleName string) bool {
-	return strings.Contains(l.Modules, moduleName)
+// HasModule reports whether Modules contains an exact module token.
+func (l *License) HasModule(moduleName string) bool {
+	moduleName = strings.TrimSpace(moduleName)
+	if moduleName == "" {
+		return false
+	}
+	for _, m := range strings.Split(l.Modules, ",") {
+		if strings.TrimSpace(m) == moduleName {
+			return true
+		}
+	}
+	return false
 }

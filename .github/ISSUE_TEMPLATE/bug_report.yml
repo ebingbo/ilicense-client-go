@@ -1,0 +1,32 @@
+name: 缺陷反馈
+description: 提交可复现的缺陷
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 说明实际现象以及你的预期。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 提供最小复现步骤。
+    validations:
+      required: true
+  - type: input
+    id: go_version
+    attributes:
+      label: Go 版本
+      placeholder: go version go1.24.x ...
+    validations:
+      required: true
+  - type: input
+    id: sdk_version
+    attributes:
+      label: SDK 版本
+      placeholder: v1.0.0 或 commit SHA
+    validations:
+      required: true

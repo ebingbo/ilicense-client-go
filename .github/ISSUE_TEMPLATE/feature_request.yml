@@ -1,0 +1,18 @@
+name: 功能建议
+description: 提交功能增强建议
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 现有问题
+      description: 当前方案无法满足什么场景？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望方案
+      description: 描述你期望的 API 或行为。
+    validations:
+      required: true
