@@ -20,5 +20,5 @@
 - README 重写并补充使用与安全说明。
 - 模块路径和 import 调整为 GitHub 发布路径。
 - 模块授权匹配从子串匹配改为精确匹配。
-- 内部校验逻辑迁移到 `internal/core`，不再作为公共 API 暴露。
+- 内部校验逻辑迁移到 `internal/licensing`，不再作为公共 API 暴露。
 - SDK 日志改为可注入（`Config.Logger`），默认静默。

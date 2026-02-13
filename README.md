@@ -82,6 +82,7 @@ func main() {
 - `NewClient(config *Config) *Client`
 - `(*Client).Init() error`
 - `(*Client).Activate(code string) (*License, error)`
+- `(*Client).CheckLicenseStatus() (LicenseStatus, error)`
 - `(*Client).CheckLicense() error`
 - `(*Client).CheckModule(module string) error`
 - `(*Client).GetCurrentLicense() *License`
@@ -92,8 +93,10 @@ func main() {
 
 - `ErrLicenseNotFound`：系统未激活。
 - `ErrLicenseExpired`：许可证已过期。
+- `ErrModuleUnauthorized`：许可证未授权对应模块。
 - `ErrSignatureInvalid`：激活码签名校验失败。
 - `LicenseError`：底层 IO 或运行时错误包装。
+- `ModuleUnauthorizedError`：模块未授权错误，包含 `Module` 字段。
 
 ## 安全说明
 

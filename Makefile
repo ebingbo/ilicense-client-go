@@ -1,7 +1,7 @@
 .PHONY: fmt test vet lint check
 
 fmt:
-	gofmt -w ./internal/core ./ilicense ./examples
+	gofmt -w ./internal/licensing ./ilicense ./examples
 
 test:
 	GOCACHE=/tmp/go-build-cache go test ./...

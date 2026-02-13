@@ -3,7 +3,7 @@ package ilicense
 import (
 	"errors"
 
-	core "github.com/ebingbo/ilicense-client-go/internal/core"
+	licensing "github.com/ebingbo/ilicense-client-go/internal/licensing"
 )
 
 var (
@@ -11,8 +11,10 @@ var (
 	ErrLicenseNotFound = errors.New("system not activated")
 	// ErrLicenseExpired means the currently loaded license is expired.
 	ErrLicenseExpired = errors.New("license expired")
+	// ErrModuleUnauthorized means current license does not grant a module.
+	ErrModuleUnauthorized = errors.New("unauthorized module")
 	// ErrSignatureInvalid means activation code signature verification failed.
-	ErrSignatureInvalid = core.ErrSignatureInvalid
+	ErrSignatureInvalid = licensing.ErrSignatureInvalid
 )
 
 // LicenseError wraps a low-level error with context.
@@ -29,3 +31,17 @@ func (e *LicenseError) Error() string {
 }
 
 func (e *LicenseError) Unwrap() error { return e.Err }
+
+// ModuleUnauthorizedError contains the unauthorized module name.
+type ModuleUnauthorizedError struct {
+	Module string
+}
+
+func (e *ModuleUnauthorizedError) Error() string {
+	if e.Module == "" {
+		return ErrModuleUnauthorized.Error()
+	}
+	return ErrModuleUnauthorized.Error() + ": " + e.Module
+}
+
+func (e *ModuleUnauthorizedError) Unwrap() error { return ErrModuleUnauthorized }

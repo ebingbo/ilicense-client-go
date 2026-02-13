@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	core "github.com/ebingbo/ilicense-client-go/internal/core"
+	licensing "github.com/ebingbo/ilicense-client-go/internal/licensing"
 )
 
 type Client struct {
@@ -18,13 +18,16 @@ type Client struct {
 
 // NewClient creates a license client with the provided config.
 // If config is nil, DefaultConfig() is applied.
+// The input config is copied so later caller-side changes do not affect client behavior.
 func NewClient(config *Config) *Client {
+	var cfg Config
 	if config == nil {
-		c := DefaultConfig()
-		config = &c
+		cfg = DefaultConfig()
+	} else {
+		cfg = *config
 	}
 	return &Client{
-		config: config,
+		config: &cfg,
 	}
 }
 
@@ -84,24 +87,25 @@ func (m *Client) handleValidLicense(license License) {
 	)
 }
 
-// CheckLicenseStatus matches Java scheduled check behavior.
-func (m *Client) CheckLicenseStatus() {
+// CheckLicenseStatus returns the current runtime license status and a corresponding error.
+func (m *Client) CheckLicenseStatus() (LicenseStatus, error) {
 	license := m.getCurrentLicense()
 	if license == nil {
 		m.logln("skipping check: not activated")
-		return
+		return LicenseStatusNotActivated, ErrLicenseNotFound
 	}
 
 	if license.IsExpired(time.Now()) {
 		m.logln("periodic check: license expired")
-		return
+		return LicenseStatusExpired, ErrLicenseExpired
 	}
+	return LicenseStatusValid, nil
 }
 
 // Activate validates activation code and persists it.
 func (m *Client) Activate(activationCode string) (*License, error) {
 	m.logln("starting license activation")
-	raw, err := core.Validate(m.config.PublicKey, activationCode)
+	raw, err := licensing.Validate(m.config.PublicKey, activationCode)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +160,7 @@ func (m *Client) CheckModule(moduleName string) error {
 	}
 	license := m.getCurrentLicense()
 	if license == nil || !license.HasModule(moduleName) {
-		return &LicenseError{Msg: "unauthorized module: " + moduleName}
+		return &ModuleUnauthorizedError{Module: moduleName}
 	}
 	return nil
 }
@@ -176,7 +180,7 @@ func (m *Client) loadLicenseFromFile() error {
 		return &LicenseError{Msg: "failed to load license file", Err: err}
 	}
 
-	raw, err := core.Validate(m.config.PublicKey, string(data))
+	raw, err := licensing.Validate(m.config.PublicKey, string(data))
 	if err != nil {
 		return err
 	}
@@ -218,7 +222,7 @@ func (m *Client) setCurrentLicense(license *License) {
 	m.licensePtr = license
 }
 
-func fromCoreLicense(in *core.License) *License {
+func fromCoreLicense(in *licensing.License) *License {
 	if in == nil {
 		return nil
 	}
