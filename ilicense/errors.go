@@ -3,7 +3,7 @@ package ilicense
 import (
 	"errors"
 
-	licensing "github.com/ebingbo/ilicense-client-go/internal/licensing"
+	licensing "github.com/xbingbo/ilicense-client-go/internal/licensing"
 )
 
 var (

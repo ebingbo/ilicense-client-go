@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	licensing "github.com/ebingbo/ilicense-client-go/internal/licensing"
+	licensing "github.com/xbingbo/ilicense-client-go/internal/licensing"
 )
 
 type Client struct {

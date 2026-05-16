@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ebingbo/ilicense-client-go/ilicense"
+	"github.com/xbingbo/ilicense-client-go/ilicense"
 )
 
 func main() {

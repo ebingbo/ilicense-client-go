@@ -19,7 +19,7 @@
 ## 安装
 
 ```bash
-go get github.com/ebingbo/ilicense-client-go
+go get github.com/xbingbo/ilicense-client-go
 ```
 
 ## 快速开始
@@ -30,7 +30,7 @@ package main
 import (
 	"log"
 
-	"github.com/ebingbo/ilicense-client-go/ilicense"
+	"github.com/xbingbo/ilicense-client-go/ilicense"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ebingbo/ilicense-client-go/ilicense"
+	"github.com/xbingbo/ilicense-client-go/ilicense"
 )
 
 func TestActivateInvalidCode(t *testing.T) {
